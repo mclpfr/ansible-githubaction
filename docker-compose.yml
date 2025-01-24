@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  target:
+    image: ubuntu:20.04
+    container_name: ansible-target
+    command: /sbin/init
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    tmpfs:
+      - /run
+      - /run/lock
+
+  control:
+    build: .
+    volumes:
+      - .:/ansible
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - target
