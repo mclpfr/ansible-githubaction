@@ -1,0 +1,47 @@
+name: Test Ansible Configuration
+
+on: [push, pull_request]
+
+jobs:
+  test-ansible:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Compose
+      uses: docker/setup-qemu-action@v2
+      uses: docker/setup-buildx-action@v2
+      uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build Docker environment
+      run: docker compose build
+
+    - name: Start test container
+      run: docker compose up -d
+
+    - name: Set up Ansible
+      uses: ansible/ansible-setup-action@v2
+      with:
+        ansible-core-version: 2.14
+
+    - name: Install Docker collection for Ansible
+      run: ansible-galaxy collection install community.docker
+
+    - name: Run Ansible playbook
+      run: ansible-playbook -i inventory.ini playbook.yml
+
+    - name: Verify NGINX installation
+      run: docker exec ansible-test systemctl status nginx
+
+    - name: Test HTTP response
+      run: |
+        curl -sSf http://localhost:80
+        curl -sI http://localhost:80 | grep "200 OK"
+
+    - name: Cleanup
+      if: always()
+      run: docker compose down
