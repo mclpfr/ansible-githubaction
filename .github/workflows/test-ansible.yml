@@ -1,45 +1,39 @@
-name: Test Ansible Setup
+name: Test Ansible Playbook
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - uses: actions/checkout@v2
 
-      - name: Setup Docker
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: all
+    - name: Set up Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
 
-      - name: Install Docker Compose
-        run: |
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
+    - name: Start Docker container
+      run: docker-compose up -d
 
-      - name: Start infrastructure
-        run: docker-compose up -d target
+    - name: Install Ansible
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ansible
 
-      - name: Wait for systemd initialization
-        run: sleep 20
+    - name: Run Ansible playbook
+      run: |
+        ansible-playbook -i "localhost," -c local playbook.yml
 
-      - name: Run Ansible playbook
-        run: |
-          docker-compose build control
-          docker-compose run control ansible-playbook \
-            -i 'ansible-target,' \
-            --connection=docker \
-            playbook.yml
+    - name: Verify NGINX installation
+      run: |
+        docker exec ansible_test systemctl is-active nginx
+        docker exec ansible_test curl -s -o /dev/null -w "%{http_code}" http://localhost | grep 200
 
-      - name: Verify NGINX installation
-        run: docker exec ansible-target nginx -v
-
-      - name: Test HTTP response
-        run: docker exec ansible-target curl -sI http://localhost | grep "200 OK"
+    - name: Clean up
+      run: docker-compose down

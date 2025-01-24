@@ -1,21 +1,10 @@
-version: '3.3'
+version: '3'
 
 services:
-  target:
-    image: jrei/systemd-ubuntu:20.04
-    container_name: ansible-target
+  ubuntu:
+    image: ubuntu:20.04
+    container_name: ansible_test
+    command: sleep infinity
+    volumes:
+      - ./:/ansible
     privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    tmpfs:
-      - /run
-      - /run/lock
-    command: /sbin/init
-
-  control:
-    build: .
-    volumes:
-      - .:/ansible
-      - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      - target
