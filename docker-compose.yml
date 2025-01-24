@@ -1,15 +1,16 @@
-version: '3.8'
+version: '3.3'
 
 services:
   target:
-    image: ubuntu:20.04
+    image: jrei/systemd-ubuntu:20.04
     container_name: ansible-target
-    command: /sbin/init
+    privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     tmpfs:
       - /run
       - /run/lock
+    command: /sbin/init
 
   control:
     build: .
